@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+// ---------- Auth / system users ----------
+
+enum SystemRole {
+  ADMIN
+  IT_STAFF
+  FINANCE
+  VIEWER
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  role         SystemRole @default(VIEWER)
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  uploadedBatches  MonthlyBillBatch[] @relation("UploadedBy")
+  performedActions AssignmentLog[]    @relation("PerformedBy")
+  assignmentsMade  LineAssignment[]   @relation("AssignedBy")
+}
+
+// ---------- People ----------
+
+enum PersonUserType {
+  SALES_AGENT
+  OFFICE_USER
+  HEAVY_DATA_USER
+}
+
+model Person {
+  id         String         @id @default(cuid())
+  fullName   String
+  nickname   String?
+  email      String?        @unique
+  department String?
+  userType   PersonUserType
+  active     Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  assignmentsAsHolder  LineAssignment[] @relation("Holder")
+  assignmentsAsDisplay LineAssignment[] @relation("DisplayAs")
+  logsFrom             AssignmentLog[]  @relation("LogFromPerson")
+  logsTo               AssignmentLog[]  @relation("LogToPerson")
+}
+
+// ---------- Packages ----------
+
+model Package {
+  id               String           @id @default(cuid())
+  name             String           @unique
+  listPriceTRY     Decimal          @db.Decimal(10, 2)
+  isAssignable     Boolean          @default(true)
+  allowedUserTypes PersonUserType[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  lines             GsmLine[]
+  assignmentHistory LineAssignment[]
+  logsFromPackage   AssignmentLog[]  @relation("LogFromPackage")
+  logsToPackage     AssignmentLog[]  @relation("LogToPackage")
+}
+
+// ---------- GSM Lines ----------
+
+enum LineStatus {
+  ASSIGNED
+  IT_DEPOT
+  RESERVED
+}
+
+model GsmLine {
+  id               String     @id @default(cuid())
+  msisdn           String     @unique
+  operator         String     @default("Vodafone")
+  currentPackageId String
+  currentPackage   Package    @relation(fields: [currentPackageId], references: [id])
+  status           LineStatus @default(IT_DEPOT)
+  notes            String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  device      Device?
+  assignments LineAssignment[]
+  logs        AssignmentLog[]
+  billRecords LineBillRecord[]
+}
+
+// ---------- Devices ----------
+
+enum DeviceStatus {
+  IN_USE
+  IT_DEPOT
+  RETIRED
+}
+
+model Device {
+  id             String       @id @default(cuid())
+  imei           String       @unique
+  model          String
+  status         DeviceStatus @default(IT_DEPOT)
+  assignedLineId String?      @unique
+  assignedLine   GsmLine?     @relation(fields: [assignedLineId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+// ---------- Assignment history (current = endDate null) ----------
+
+model LineAssignment {
+  id                String    @id @default(cuid())
+  lineId            String
+  line              GsmLine   @relation(fields: [lineId], references: [id])
+  personId          String
+  person            Person    @relation("Holder", fields: [personId], references: [id])
+  displayAsPersonId String?
+  displayAsPerson   Person?   @relation("DisplayAs", fields: [displayAsPersonId], references: [id])
+  packageId         String
+  package           Package   @relation(fields: [packageId], references: [id])
+  startDate         DateTime  @default(now())
+  endDate           DateTime?
+  assignedByUserId  String
+  assignedByUser    User      @relation("AssignedBy", fields: [assignedByUserId], references: [id])
+  note              String?
+  createdAt         DateTime  @default(now())
+
+  @@index([lineId, endDate])
+}
+
+// ---------- Audit / change log ----------
+
+enum AssignmentAction {
+  ASSIGNED
+  UNASSIGNED
+  PACKAGE_CHANGED
+  MOVED_TO_DEPOT
+  RESERVED
+  DEVICE_LINKED
+  DEVICE_UNLINKED
+}
+
+model AssignmentLog {
+  id                String           @id @default(cuid())
+  lineId            String
+  line              GsmLine          @relation(fields: [lineId], references: [id])
+  action            AssignmentAction
+  fromPersonId      String?
+  fromPerson        Person?          @relation("LogFromPerson", fields: [fromPersonId], references: [id])
+  toPersonId        String?
+  toPerson          Person?          @relation("LogToPerson", fields: [toPersonId], references: [id])
+  fromPackageId     String?
+  fromPackage       Package?         @relation("LogFromPackage", fields: [fromPackageId], references: [id])
+  toPackageId       String?
+  toPackage         Package?         @relation("LogToPackage", fields: [toPackageId], references: [id])
+  performedByUserId String
+  performedByUser   User             @relation("PerformedBy", fields: [performedByUserId], references: [id])
+  note              String?
+  timestamp         DateTime         @default(now())
+
+  @@index([lineId, timestamp])
+}
+
+// ---------- Monthly bills ----------
+
+enum BillBatchStatus {
+  PROCESSING
+  REVIEW
+  CONFIRMED
+}
+
+model MonthlyBillBatch {
+  id               String          @id @default(cuid())
+  periodMonth      Int
+  periodYear       Int
+  operator         String          @default("Vodafone")
+  fileUrl          String
+  uploadedByUserId String
+  uploadedByUser   User            @relation("UploadedBy", fields: [uploadedByUserId], references: [id])
+  status           BillBatchStatus @default(PROCESSING)
+  createdAt        DateTime        @default(now())
+
+  records LineBillRecord[]
+
+  @@unique([periodMonth, periodYear, operator])
+}
+
+model LineBillRecord {
+  id                 String           @id @default(cuid())
+  batchId            String
+  batch              MonthlyBillBatch @relation(fields: [batchId], references: [id])
+  lineId             String?
+  line               GsmLine?         @relation(fields: [lineId], references: [id])
+  rawExtractedNumber String
+  amountTRY          Decimal          @db.Decimal(10, 2)
+  matchedManually    Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+
+  alerts Alert[]
+
+  @@index([batchId])
+}
+
+// ---------- Alerts ----------
+
+enum AlertType {
+  OVER_LIST_PRICE
+}
+
+enum AlertStatus {
+  PENDING
+  SENT
+  ACKED
+}
+
+model Alert {
+  id               String         @id @default(cuid())
+  lineBillRecordId String
+  lineBillRecord   LineBillRecord @relation(fields: [lineBillRecordId], references: [id])
+  type             AlertType      @default(OVER_LIST_PRICE)
+  pctDiff          Decimal        @db.Decimal(6, 2)
+  status           AlertStatus    @default(PENDING)
+  sentAt           DateTime?
+  recipients       String[]
+  createdAt        DateTime       @default(now())
+}
