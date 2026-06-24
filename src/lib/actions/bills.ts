@@ -94,9 +94,3 @@ export async function confirmBillBatch(batchId: string) {
   revalidatePath(`/bills/${batchId}`);
   revalidatePath("/alerts");
 }
-
-export async function ackAlert(alertId: string) {
-  await requirePermission("uploadBills");
-  await prisma.alert.update({ where: { id: alertId }, data: { status: "ACKED" } });
-  revalidatePath("/alerts");
-}

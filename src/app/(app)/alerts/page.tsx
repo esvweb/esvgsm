@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { can } from "@/lib/permissions";
-import { ackAlert } from "@/lib/actions/bills";
+import { ackAlert } from "@/lib/actions/alerts";
 
 export default async function AlertsPage() {
   const [alerts, session] = await Promise.all([
