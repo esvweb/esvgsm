@@ -1,5 +1,10 @@
-import { auth } from "@/auth";
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
+import { authConfig } from "@/auth.config";
+
+// Edge-safe: uses the provider-less config so middleware never pulls in
+// Prisma/bcrypt (unsupported in the Edge runtime middleware executes in).
+const { auth } = NextAuth(authConfig);
 
 const ADMIN_ONLY_PREFIXES = ["/admin/users"];
 
