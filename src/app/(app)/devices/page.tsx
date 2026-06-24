@@ -2,6 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { can } from "@/lib/permissions";
 import { createDevice, linkDeviceToLine } from "@/lib/actions/devices";
+import { Card, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/field";
 
 export default async function DevicesPage() {
   const [devices, lines, session] = await Promise.all([
@@ -13,28 +17,32 @@ export default async function DevicesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-slate-900">Devices</h1>
+      <h1 className="text-2xl font-semibold text-foreground">Devices</h1>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <Card className="overflow-hidden p-0">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
+          <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-muted">
             <tr>
-              <th className="px-4 py-2">IMEI</th>
-              <th className="px-4 py-2">Model</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Linked line</th>
-              {canEdit && <th className="px-4 py-2">Action</th>}
+              <th className="px-5 py-3">IMEI</th>
+              <th className="px-5 py-3">Model</th>
+              <th className="px-5 py-3">Status</th>
+              <th className="px-5 py-3">Linked line</th>
+              {canEdit && <th className="px-5 py-3">Action</th>}
             </tr>
           </thead>
           <tbody>
             {devices.map((d) => (
-              <tr key={d.id} className="border-t border-slate-100">
-                <td className="px-4 py-2 font-mono">{d.imei}</td>
-                <td className="px-4 py-2">{d.model}</td>
-                <td className="px-4 py-2">{d.status.replace("_", " ")}</td>
-                <td className="px-4 py-2">{d.assignedLine?.msisdn ?? "—"}</td>
+              <tr key={d.id} className="border-t border-border">
+                <td className="px-5 py-3 font-mono text-foreground">{d.imei}</td>
+                <td className="px-5 py-3 text-muted">{d.model}</td>
+                <td className="px-5 py-3">
+                  <Badge variant={d.status === "IN_USE" ? "secondary" : "neutral"}>
+                    {d.status.replace("_", " ")}
+                  </Badge>
+                </td>
+                <td className="px-5 py-3 text-muted">{d.assignedLine?.msisdn ?? "—"}</td>
                 {canEdit && (
-                  <td className="px-4 py-2">
+                  <td className="px-5 py-3">
                     <form
                       action={async (formData) => {
                         "use server";
@@ -43,17 +51,17 @@ export default async function DevicesPage() {
                       }}
                       className="flex gap-2"
                     >
-                      <select name="lineId" defaultValue={d.assignedLineId ?? ""} className="rounded border border-slate-300 px-2 py-1 text-xs">
+                      <Select name="lineId" defaultValue={d.assignedLineId ?? ""} className="py-1.5 text-xs">
                         <option value="">Unlinked</option>
                         {lines.map((l) => (
                           <option key={l.id} value={l.id}>
                             {l.msisdn}
                           </option>
                         ))}
-                      </select>
-                      <button type="submit" className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">
+                      </Select>
+                      <Button type="submit" variant="outline" className="px-3 py-1.5 text-xs">
                         Save
-                      </button>
+                      </Button>
                     </form>
                   </td>
                 )}
@@ -61,17 +69,17 @@ export default async function DevicesPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
 
       {canEdit && (
-        <form action={createDevice} className="max-w-md space-y-3 rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="font-medium text-slate-900">Add device</h2>
-          <input name="imei" placeholder="IMEI" required className="w-full rounded border border-slate-300 px-3 py-2 text-sm" />
-          <input name="model" placeholder="Model" required className="w-full rounded border border-slate-300 px-3 py-2 text-sm" />
-          <button type="submit" className="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">
-            Create
-          </button>
-        </form>
+        <Card className="max-w-md">
+          <form action={createDevice} className="space-y-3">
+            <CardTitle>Add device</CardTitle>
+            <Input name="imei" placeholder="IMEI" required />
+            <Input name="model" placeholder="Model" required />
+            <Button type="submit">Create</Button>
+          </form>
+        </Card>
       )}
     </div>
   );

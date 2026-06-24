@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { createPerson } from "@/lib/actions/people";
 import { auth } from "@/auth";
 import { can } from "@/lib/permissions";
+import { Card, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/field";
 
 export default async function PeoplePage() {
   const [people, session] = await Promise.all([
@@ -13,60 +17,56 @@ export default async function PeoplePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-slate-900">People</h1>
+      <h1 className="text-2xl font-semibold text-foreground">People</h1>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <Card className="overflow-hidden p-0">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
+          <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-muted">
             <tr>
-              <th className="px-4 py-2">Name</th>
-              <th className="px-4 py-2">Type</th>
-              <th className="px-4 py-2">Department</th>
-              <th className="px-4 py-2">Status</th>
+              <th className="px-5 py-3">Name</th>
+              <th className="px-5 py-3">Type</th>
+              <th className="px-5 py-3">Department</th>
+              <th className="px-5 py-3">Status</th>
             </tr>
           </thead>
           <tbody>
             {people.map((p) => (
-              <tr key={p.id} className="border-t border-slate-100 hover:bg-slate-50">
-                <td className="px-4 py-2">
-                  <Link href={`/people/${p.id}`} className="font-medium text-slate-900 hover:underline">
+              <tr key={p.id} className="border-t border-border hover:bg-gray-50">
+                <td className="px-5 py-3">
+                  <Link href={`/people/${p.id}`} className="font-medium text-foreground hover:text-primary">
                     {p.fullName}
                   </Link>
-                  {p.nickname && <span className="ml-1 text-slate-400">({p.nickname})</span>}
+                  {p.nickname && <span className="ml-1 text-muted">({p.nickname})</span>}
                 </td>
-                <td className="px-4 py-2">{p.userType.replace("_", " ")}</td>
-                <td className="px-4 py-2">{p.department ?? "—"}</td>
-                <td className="px-4 py-2">
-                  {p.active ? (
-                    <span className="text-emerald-600">Active</span>
-                  ) : (
-                    <span className="text-slate-400">Departed</span>
-                  )}
+                <td className="px-5 py-3 text-muted">{p.userType.replace("_", " ")}</td>
+                <td className="px-5 py-3 text-muted">{p.department ?? "—"}</td>
+                <td className="px-5 py-3">
+                  {p.active ? <Badge variant="secondary">Active</Badge> : <Badge variant="neutral">Departed</Badge>}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
 
       {canEdit && (
-        <form action={createPerson} className="max-w-xl space-y-3 rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="font-medium text-slate-900">Add person</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <input name="fullName" placeholder="Full name" required className="rounded border border-slate-300 px-3 py-2 text-sm" />
-            <input name="nickname" placeholder="Nickname (optional)" className="rounded border border-slate-300 px-3 py-2 text-sm" />
-            <input name="email" type="email" placeholder="Email (optional)" className="rounded border border-slate-300 px-3 py-2 text-sm" />
-            <input name="department" placeholder="Department (optional)" className="rounded border border-slate-300 px-3 py-2 text-sm" />
-            <select name="userType" required className="rounded border border-slate-300 px-3 py-2 text-sm">
-              <option value="OFFICE_USER">Office User</option>
-              <option value="SALES_AGENT">Sales Agent</option>
-              <option value="HEAVY_DATA_USER">Heavy Data User</option>
-            </select>
-          </div>
-          <button type="submit" className="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">
-            Create
-          </button>
-        </form>
+        <Card className="max-w-xl">
+          <form action={createPerson} className="space-y-4">
+            <CardTitle>Add person</CardTitle>
+            <div className="grid grid-cols-2 gap-3">
+              <Input name="fullName" placeholder="Full name" required />
+              <Input name="nickname" placeholder="Nickname (optional)" />
+              <Input name="email" type="email" placeholder="Email (optional)" />
+              <Input name="department" placeholder="Department (optional)" />
+              <Select name="userType" required className="col-span-2">
+                <option value="OFFICE_USER">Office User</option>
+                <option value="SALES_AGENT">Sales Agent</option>
+                <option value="HEAVY_DATA_USER">Heavy Data User</option>
+              </Select>
+            </div>
+            <Button type="submit">Create</Button>
+          </form>
+        </Card>
       )}
     </div>
   );

@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/current-user";
+import { storeBillFile } from "@/lib/bill-storage";
 import { extractPdfText } from "@/lib/pdf-text";
 import { extractBillLineItems, normalizeMsisdn } from "@/lib/openai-bill-extraction";
 import { runAlertsForBatch } from "@/lib/alert-engine";
@@ -29,17 +29,14 @@ export async function uploadBillBatch(formData: FormData) {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  const blob = await put(`bills/${data.periodYear}-${data.periodMonth}-${file.name}`, buffer, {
-    access: "public",
-    contentType: "application/pdf",
-  });
+  const fileUrl = await storeBillFile(`${data.periodYear}-${data.periodMonth}-${file.name}`, buffer);
 
   const batch = await prisma.monthlyBillBatch.create({
     data: {
       periodMonth: data.periodMonth,
       periodYear: data.periodYear,
       operator: data.operator,
-      fileUrl: blob.url,
+      fileUrl,
       uploadedByUserId: user.id,
       status: "PROCESSING",
     },

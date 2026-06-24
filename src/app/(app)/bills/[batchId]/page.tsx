@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { can } from "@/lib/permissions";
 import { matchBillRecord, confirmBillBatch } from "@/lib/actions/bills";
+import { Card, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/field";
 
 export default async function BillBatchPage({ params }: { params: Promise<{ batchId: string }> }) {
   const { batchId } = await params;
@@ -37,18 +41,22 @@ export default async function BillBatchPage({ params }: { params: Promise<{ batc
   return (
     <div className="max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-900">
-          Bill batch — {batch.periodMonth}/{batch.periodYear} ({batch.operator})
-        </h1>
-        <a href={batch.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-slate-500 hover:underline">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">
+            Bill batch — {batch.periodMonth}/{batch.periodYear} ({batch.operator})
+          </h1>
+          <Badge variant={batch.status === "CONFIRMED" ? "secondary" : "warning"} className="mt-2">
+            {batch.status}
+          </Badge>
+        </div>
+        <a href={batch.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline">
           View original PDF
         </a>
       </div>
-      <p className="text-sm text-slate-500">Status: {batch.status}</p>
 
       {unmatched.length > 0 && (
-        <section className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <h2 className="mb-3 font-medium text-amber-900">Unmatched numbers — please match manually</h2>
+        <Card className="border-amber-200 bg-amber-50">
+          <CardTitle className="text-amber-900">Unmatched numbers — please match manually</CardTitle>
           <ul className="space-y-2 text-sm">
             {unmatched.map((r) => (
               <li key={r.id} className="flex items-center gap-3">
@@ -62,41 +70,41 @@ export default async function BillBatchPage({ params }: { params: Promise<{ batc
                     }}
                     className="flex gap-2"
                   >
-                    <select name="lineId" required className="rounded border border-slate-300 px-2 py-1 text-xs">
+                    <Select name="lineId" required className="py-1.5 text-xs">
                       <option value="">Select line…</option>
                       {lines.map((l) => (
                         <option key={l.id} value={l.id}>
                           {l.msisdn}
                         </option>
                       ))}
-                    </select>
-                    <button type="submit" className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-white">
+                    </Select>
+                    <Button type="submit" variant="outline" className="px-3 py-1.5 text-xs">
                       Match
-                    </button>
+                    </Button>
                   </form>
                 )}
               </li>
             ))}
           </ul>
-        </section>
+        </Card>
       )}
 
       {[...groups.values()].map((g) => {
         const avg = g.amounts.reduce((a, b) => a + b, 0) / g.amounts.length;
         return (
-          <section key={g.name} className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="mb-3 font-medium text-slate-900">{g.name}</h2>
-            <p className="mb-3 text-sm text-slate-500">
+          <Card key={g.name}>
+            <CardTitle>{g.name}</CardTitle>
+            <p className="mb-3 text-sm text-muted">
               List price: {g.listPrice.toFixed(2)} TRY · Group average this period: {avg.toFixed(2)} TRY (
               {g.amounts.length} lines)
             </p>
             <table className="w-full text-sm">
-              <thead className="text-left text-slate-500">
+              <thead className="text-left text-xs uppercase tracking-wide text-muted">
                 <tr>
-                  <th className="py-1">Number</th>
-                  <th className="py-1">Amount</th>
-                  <th className="py-1">vs. list price</th>
-                  <th className="py-1">vs. group avg</th>
+                  <th className="py-2">Number</th>
+                  <th className="py-2">Amount</th>
+                  <th className="py-2">vs. list price</th>
+                  <th className="py-2">vs. group avg</th>
                 </tr>
               </thead>
               <tbody>
@@ -107,14 +115,14 @@ export default async function BillBatchPage({ params }: { params: Promise<{ batc
                     const vsList = g.listPrice > 0 ? ((amount - g.listPrice) / g.listPrice) * 100 : 0;
                     const vsAvg = avg > 0 ? ((amount - avg) / avg) * 100 : 0;
                     return (
-                      <tr key={r.id} className="border-t border-slate-100">
-                        <td className="py-1">{r.line?.msisdn}</td>
-                        <td className="py-1">{amount.toFixed(2)} TRY</td>
-                        <td className={`py-1 ${Math.abs(vsList) > 25 ? "text-red-600 font-medium" : ""}`}>
+                      <tr key={r.id} className="border-t border-border">
+                        <td className="py-2">{r.line?.msisdn}</td>
+                        <td className="py-2">{amount.toFixed(2)} TRY</td>
+                        <td className={`py-2 ${Math.abs(vsList) > 25 ? "font-medium text-red-600" : "text-muted"}`}>
                           {vsList > 0 ? "+" : ""}
                           {vsList.toFixed(1)}%
                         </td>
-                        <td className="py-1">
+                        <td className="py-2 text-muted">
                           {vsAvg > 0 ? "+" : ""}
                           {vsAvg.toFixed(1)}%
                         </td>
@@ -123,7 +131,7 @@ export default async function BillBatchPage({ params }: { params: Promise<{ batc
                   })}
               </tbody>
             </table>
-          </section>
+          </Card>
         );
       })}
 
@@ -134,13 +142,9 @@ export default async function BillBatchPage({ params }: { params: Promise<{ batc
             await confirmBillBatch(batch.id);
           }}
         >
-          <button
-            type="submit"
-            disabled={unmatched.length > 0}
-            className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-40"
-          >
+          <Button type="submit" disabled={unmatched.length > 0}>
             Confirm batch &amp; run alerts
-          </button>
+          </Button>
           {unmatched.length > 0 && (
             <p className="mt-2 text-xs text-amber-700">Match all unmatched numbers before confirming.</p>
           )}

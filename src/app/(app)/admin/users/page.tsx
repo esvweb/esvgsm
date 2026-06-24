@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { createUser, setUserActive, setUserRole } from "@/lib/actions/users";
+import { Card, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/field";
 
 const ROLES = ["ADMIN", "IT_STAFF", "FINANCE", "VIEWER"] as const;
 
@@ -8,24 +12,24 @@ export default async function UsersAdminPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-xl font-semibold text-slate-900">System users</h1>
+      <h1 className="text-2xl font-semibold text-foreground">System users</h1>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <Card className="overflow-hidden p-0">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
+          <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-muted">
             <tr>
-              <th className="px-4 py-2">Name</th>
-              <th className="px-4 py-2">Email</th>
-              <th className="px-4 py-2">Role</th>
-              <th className="px-4 py-2">Active</th>
+              <th className="px-5 py-3">Name</th>
+              <th className="px-5 py-3">Email</th>
+              <th className="px-5 py-3">Role</th>
+              <th className="px-5 py-3">Active</th>
             </tr>
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} className="border-t border-slate-100">
-                <td className="px-4 py-2">{u.name}</td>
-                <td className="px-4 py-2">{u.email}</td>
-                <td className="px-4 py-2">
+              <tr key={u.id} className="border-t border-border">
+                <td className="px-5 py-3 text-foreground">{u.name}</td>
+                <td className="px-5 py-3 text-muted">{u.email}</td>
+                <td className="px-5 py-3">
                   <form
                     action={async (formData) => {
                       "use server";
@@ -33,52 +37,54 @@ export default async function UsersAdminPage() {
                     }}
                     className="flex gap-2"
                   >
-                    <select name="role" defaultValue={u.role} className="rounded border border-slate-300 px-2 py-1 text-xs">
+                    <Select name="role" defaultValue={u.role} className="py-1.5 text-xs">
                       {ROLES.map((r) => (
                         <option key={r} value={r}>
                           {r}
                         </option>
                       ))}
-                    </select>
-                    <button type="submit" className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">
+                    </Select>
+                    <Button type="submit" variant="outline" className="px-3 py-1.5 text-xs">
                       Save
-                    </button>
+                    </Button>
                   </form>
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-5 py-3">
                   <form
                     action={async () => {
                       "use server";
                       await setUserActive(u.id, !u.active);
                     }}
+                    className="flex items-center gap-2"
                   >
-                    <button type="submit" className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">
+                    <Badge variant={u.active ? "secondary" : "neutral"}>{u.active ? "Active" : "Inactive"}</Badge>
+                    <Button type="submit" variant="outline" className="px-3 py-1.5 text-xs">
                       {u.active ? "Deactivate" : "Activate"}
-                    </button>
+                    </Button>
                   </form>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
 
-      <form action={createUser} className="max-w-md space-y-3 rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="font-medium text-slate-900">Add user</h2>
-        <input name="name" placeholder="Name" required className="w-full rounded border border-slate-300 px-3 py-2 text-sm" />
-        <input name="email" type="email" placeholder="Email" required className="w-full rounded border border-slate-300 px-3 py-2 text-sm" />
-        <input name="password" type="password" placeholder="Temporary password" required minLength={8} className="w-full rounded border border-slate-300 px-3 py-2 text-sm" />
-        <select name="role" required className="w-full rounded border border-slate-300 px-3 py-2 text-sm">
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
-          ))}
-        </select>
-        <button type="submit" className="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">
-          Create
-        </button>
-      </form>
+      <Card className="max-w-md">
+        <form action={createUser} className="space-y-3">
+          <CardTitle>Add user</CardTitle>
+          <Input name="name" placeholder="Name" required />
+          <Input name="email" type="email" placeholder="Email" required />
+          <Input name="password" type="password" placeholder="Temporary password" required minLength={8} />
+          <Select name="role" required>
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </Select>
+          <Button type="submit">Create</Button>
+        </form>
+      </Card>
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { AuthError } from "next-auth";
+import { Button } from "@/components/ui/button";
+import { Input, Label } from "@/components/ui/field";
 
 async function login(formData: FormData) {
   "use server";
@@ -27,46 +29,34 @@ export default async function LoginPage({
   const callbackUrl = params.callbackUrl ?? "/dashboard";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
+    <div className="flex min-h-screen items-center justify-center bg-background">
       <form
         action={login}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-slate-200 bg-white p-8 shadow-sm"
+        className="w-full max-w-sm space-y-5 rounded-2xl border border-border bg-card p-8 shadow-sm"
       >
-        <h1 className="text-lg font-semibold text-slate-900">Esvita GSM System</h1>
+        <div>
+          <span className="text-xl font-bold text-primary">Esvita</span>
+          <span className="text-xl font-bold text-secondary"> GSM</span>
+        </div>
         <input type="hidden" name="callbackUrl" value={callbackUrl} />
 
         {params.error && (
-          <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">
-            Invalid email or password.
-          </p>
+          <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">Invalid email or password.</p>
         )}
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700">Email</label>
-          <input
-            name="email"
-            type="email"
-            required
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
-          />
+        <div>
+          <Label>Email</Label>
+          <Input name="email" type="email" required />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700">Password</label>
-          <input
-            name="password"
-            type="password"
-            required
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
-          />
+        <div>
+          <Label>Password</Label>
+          <Input name="password" type="password" required />
         </div>
 
-        <button
-          type="submit"
-          className="w-full rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
-        >
+        <Button type="submit" className="w-full">
           Sign in
-        </button>
+        </Button>
       </form>
     </div>
   );

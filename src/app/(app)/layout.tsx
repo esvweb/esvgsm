@@ -1,58 +1,44 @@
-import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
-
-const NAV = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/lines", label: "GSM Lines" },
-  { href: "/people", label: "People" },
-  { href: "/devices", label: "Devices" },
-  { href: "/bills", label: "Bills" },
-  { href: "/alerts", label: "Alerts" },
-];
+import { LogOut } from "lucide-react";
+import { Sidebar } from "@/components/sidebar";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session) redirect("/login");
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-        <div className="flex items-center gap-6">
-          <span className="font-semibold text-slate-900">Esvita GSM</span>
-          <nav className="flex gap-4 text-sm text-slate-600">
-            {NAV.map((item) => (
-              <Link key={item.href} href={item.href} className="hover:text-slate-900">
-                {item.label}
-              </Link>
-            ))}
-            {session.user.role === "ADMIN" && (
-              <>
-                <Link href="/admin/users" className="hover:text-slate-900">
-                  Users
-                </Link>
-                <Link href="/admin/packages" className="hover:text-slate-900">
-                  Packages
-                </Link>
-              </>
-            )}
-          </nav>
+    <div className="flex min-h-screen">
+      <aside className="flex w-64 flex-col border-r border-border bg-card py-6">
+        <div className="mb-6 px-6">
+          <span className="text-lg font-bold text-primary">Esvita</span>
+          <span className="text-lg font-bold text-secondary"> GSM</span>
         </div>
-        <div className="flex items-center gap-3 text-sm text-slate-600">
-          <span>
-            {session.user.name} · <span className="text-slate-400">{session.user.role}</span>
-          </span>
+
+        <div className="flex-1">
+          <Sidebar isAdmin={session.user.role === "ADMIN"} />
+        </div>
+
+        <div className="mt-auto border-t border-border px-6 pt-4">
+          <div className="mb-3 text-sm">
+            <div className="font-medium text-foreground">{session.user.name}</div>
+            <div className="text-xs text-muted">{session.user.role.replace("_", " ")}</div>
+          </div>
           <form
             action={async () => {
               "use server";
               await signOut({ redirectTo: "/login" });
             }}
           >
-            <button className="text-slate-500 hover:text-slate-900">Sign out</button>
+            <button className="flex items-center gap-2 text-sm text-muted hover:text-foreground">
+              <LogOut size={16} />
+              Sign out
+            </button>
           </form>
         </div>
-      </header>
-      <main className="flex-1 bg-slate-50 px-6 py-6">{children}</main>
+      </aside>
+
+      <main className="flex-1 px-8 py-8">{children}</main>
     </div>
   );
 }

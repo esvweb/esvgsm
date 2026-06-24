@@ -3,11 +3,21 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { can } from "@/lib/permissions";
 import { createLine } from "@/lib/actions/lines";
+import { Card, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/field";
 
 const STATUS_LABEL: Record<string, string> = {
   ASSIGNED: "Assigned",
   IT_DEPOT: "IT Depot",
   RESERVED: "Reserved",
+};
+
+const STATUS_BADGE: Record<string, "secondary" | "neutral" | "primary"> = {
+  ASSIGNED: "secondary",
+  IT_DEPOT: "neutral",
+  RESERVED: "primary",
 };
 
 export default async function LinesPage({
@@ -33,48 +43,52 @@ export default async function LinesPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-900">GSM Lines</h1>
+        <h1 className="text-2xl font-semibold text-foreground">GSM Lines</h1>
         <div className="flex gap-2 text-sm">
           {["ASSIGNED", "IT_DEPOT", "RESERVED"].map((s) => (
             <Link
               key={s}
               href={`/lines?status=${s}`}
-              className={`rounded px-2 py-1 ${status === s ? "bg-slate-900 text-white" : "border border-slate-300 text-slate-600"}`}
+              className={`rounded-full px-3 py-1.5 font-medium ${
+                status === s ? "bg-primary text-white" : "border border-border text-muted hover:bg-gray-50"
+              }`}
             >
               {STATUS_LABEL[s]}
             </Link>
           ))}
           {status && (
-            <Link href="/lines" className="rounded px-2 py-1 text-slate-400 hover:text-slate-700">
+            <Link href="/lines" className="rounded-full px-3 py-1.5 text-muted hover:text-foreground">
               Clear
             </Link>
           )}
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <Card className="overflow-hidden p-0">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
+          <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-muted">
             <tr>
-              <th className="px-4 py-2">Number</th>
-              <th className="px-4 py-2">Package</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Holder</th>
+              <th className="px-5 py-3">Number</th>
+              <th className="px-5 py-3">Package</th>
+              <th className="px-5 py-3">Status</th>
+              <th className="px-5 py-3">Holder</th>
             </tr>
           </thead>
           <tbody>
             {lines.map((l) => {
               const current = l.assignments[0];
               return (
-                <tr key={l.id} className="border-t border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-2">
-                    <Link href={`/lines/${l.id}`} className="font-medium text-slate-900 hover:underline">
+                <tr key={l.id} className="border-t border-border hover:bg-gray-50">
+                  <td className="px-5 py-3">
+                    <Link href={`/lines/${l.id}`} className="font-medium text-foreground hover:text-primary">
                       {l.msisdn}
                     </Link>
                   </td>
-                  <td className="px-4 py-2">{l.currentPackage.name}</td>
-                  <td className="px-4 py-2">{STATUS_LABEL[l.status]}</td>
-                  <td className="px-4 py-2">
+                  <td className="px-5 py-3 text-muted">{l.currentPackage.name}</td>
+                  <td className="px-5 py-3">
+                    <Badge variant={STATUS_BADGE[l.status]}>{STATUS_LABEL[l.status]}</Badge>
+                  </td>
+                  <td className="px-5 py-3 text-muted">
                     {current
                       ? `${current.person.fullName}${current.displayAsPerson ? ` (as ${current.displayAsPerson.fullName})` : ""}`
                       : "—"}
@@ -84,27 +98,27 @@ export default async function LinesPage({
             })}
           </tbody>
         </table>
-      </div>
+      </Card>
 
       {canEdit && (
-        <form action={createLine} className="max-w-xl space-y-3 rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="font-medium text-slate-900">Add GSM line</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <input name="msisdn" placeholder="Phone number" required className="rounded border border-slate-300 px-3 py-2 text-sm" />
-            <input name="operator" placeholder="Operator" defaultValue="Vodafone" required className="rounded border border-slate-300 px-3 py-2 text-sm" />
-            <select name="packageId" required className="rounded border border-slate-300 px-3 py-2 text-sm">
-              {packages.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <input name="notes" placeholder="Notes (optional)" className="rounded border border-slate-300 px-3 py-2 text-sm" />
-          </div>
-          <button type="submit" className="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">
-            Create (starts in IT Depot)
-          </button>
-        </form>
+        <Card className="max-w-xl">
+          <form action={createLine} className="space-y-4">
+            <CardTitle>Add GSM line</CardTitle>
+            <div className="grid grid-cols-2 gap-3">
+              <Input name="msisdn" placeholder="Phone number" required />
+              <Input name="operator" placeholder="Operator" defaultValue="Vodafone" required />
+              <Select name="packageId" required className="col-span-2">
+                {packages.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </Select>
+              <Input name="notes" placeholder="Notes (optional)" className="col-span-2" />
+            </div>
+            <Button type="submit">Create (starts in IT Depot)</Button>
+          </form>
+        </Card>
       )}
     </div>
   );

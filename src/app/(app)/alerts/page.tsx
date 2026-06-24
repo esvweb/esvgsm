@@ -3,6 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { can } from "@/lib/permissions";
 import { ackAlert } from "@/lib/actions/alerts";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
+const STATUS_BADGE: Record<string, "neutral" | "secondary" | "primary"> = {
+  PENDING: "neutral",
+  SENT: "primary",
+  ACKED: "secondary",
+};
 
 export default async function AlertsPage() {
   const [alerts, session] = await Promise.all([
@@ -16,52 +25,54 @@ export default async function AlertsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-slate-900">Alerts — bills &gt;25% off list price</h1>
+      <h1 className="text-2xl font-semibold text-foreground">Alerts — bills &gt;25% off list price</h1>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <Card className="overflow-hidden p-0">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-500">
+          <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-muted">
             <tr>
-              <th className="px-4 py-2">Period</th>
-              <th className="px-4 py-2">Line</th>
-              <th className="px-4 py-2">Diff</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Recipients</th>
-              {canAck && <th className="px-4 py-2"></th>}
+              <th className="px-5 py-3">Period</th>
+              <th className="px-5 py-3">Line</th>
+              <th className="px-5 py-3">Diff</th>
+              <th className="px-5 py-3">Status</th>
+              <th className="px-5 py-3">Recipients</th>
+              {canAck && <th className="px-5 py-3"></th>}
             </tr>
           </thead>
           <tbody>
             {alerts.map((a) => (
-              <tr key={a.id} className="border-t border-slate-100">
-                <td className="px-4 py-2">
+              <tr key={a.id} className="border-t border-border">
+                <td className="px-5 py-3 text-muted">
                   {a.lineBillRecord.batch.periodMonth}/{a.lineBillRecord.batch.periodYear}
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-5 py-3">
                   {a.lineBillRecord.line ? (
-                    <Link href={`/lines/${a.lineBillRecord.line.id}`} className="font-medium text-slate-900 hover:underline">
+                    <Link href={`/lines/${a.lineBillRecord.line.id}`} className="font-medium text-foreground hover:text-primary">
                       {a.lineBillRecord.line.msisdn}
                     </Link>
                   ) : (
                     a.lineBillRecord.rawExtractedNumber
                   )}
                 </td>
-                <td className={`px-4 py-2 font-medium ${Number(a.pctDiff) > 0 ? "text-red-600" : "text-amber-600"}`}>
+                <td className={`px-5 py-3 font-medium ${Number(a.pctDiff) > 0 ? "text-red-600" : "text-amber-600"}`}>
                   {Number(a.pctDiff) > 0 ? "+" : ""}
                   {Number(a.pctDiff).toFixed(1)}%
                 </td>
-                <td className="px-4 py-2">{a.status}</td>
-                <td className="px-4 py-2 text-xs text-slate-500">{a.recipients.join(", ") || "—"}</td>
+                <td className="px-5 py-3">
+                  <Badge variant={STATUS_BADGE[a.status]}>{a.status}</Badge>
+                </td>
+                <td className="px-5 py-3 text-xs text-muted">{a.recipients.join(", ") || "—"}</td>
                 {canAck && a.status !== "ACKED" && (
-                  <td className="px-4 py-2">
+                  <td className="px-5 py-3">
                     <form
                       action={async () => {
                         "use server";
                         await ackAlert(a.id);
                       }}
                     >
-                      <button type="submit" className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">
+                      <Button type="submit" variant="outline" className="px-3 py-1.5 text-xs">
                         Acknowledge
-                      </button>
+                      </Button>
                     </form>
                   </td>
                 )}
@@ -69,8 +80,8 @@ export default async function AlertsPage() {
             ))}
           </tbody>
         </table>
-        {alerts.length === 0 && <p className="px-4 py-6 text-sm text-slate-500">No alerts yet.</p>}
-      </div>
+        {alerts.length === 0 && <p className="px-5 py-6 text-sm text-muted">No alerts yet.</p>}
+      </Card>
     </div>
   );
 }
